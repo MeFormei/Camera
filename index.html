@@ -1,0 +1,27 @@
+
+<html>
+  <head>
+    <title>Move Mouse Camera</title>
+  </head>
+
+  <body>
+    <p id="content"></p>
+  </body>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" />
+  <script>
+    var mqtt = require('mqtt')
+    var client  = mqtt.connect('mqtt://192.168.99.100')
+
+    client.on('connect', function () {
+      client.subscribe('position')
+    })
+
+    client.on('message', function (topic, message) {
+      // message is Buffer
+      console.log(message.toString())
+      document.getElementById('content').innerHTML = message.toString()
+      // client.end()
+    })
+  </script>
+</html>
