@@ -126,7 +126,7 @@ while True:
 
 			if mouse_dX > MOUSE_THRESHOLD or mouse_dY > MOUSE_THRESHOLD:
 				last_mouse_pos = (center_x, center_y)
-				pyautogui.moveTo(center_x, center_y, duration=0)
+				# pyautogui.moveTo(center_x, center_y, duration=0)
 				client.publish('position', 'x: {}, y: {}'.format(center_x, center_y))
 
 			# ensure there is significant movement in the
