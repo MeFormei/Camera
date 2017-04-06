@@ -8,20 +8,17 @@
     <p id="content"></p>
   </body>
 
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js" />
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script>
-    var mqtt = require('mqtt')
-    var client  = mqtt.connect('mqtt://192.168.99.100')
-
-    client.on('connect', function () {
-      client.subscribe('position')
-    })
+    var client  = mqtt.connect('mqtt://localhost:1883');
+  
+    client.subscribe('position')
 
     client.on('message', function (topic, message) {
       // message is Buffer
       console.log(message.toString())
       document.getElementById('content').innerHTML = message.toString()
-      // client.end()
+      client.end()
     })
   </script>
 </html>

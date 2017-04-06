@@ -45,7 +45,7 @@ else:
 
 # Connects to mqtt broker
 client = mqtt.Client()
-client.connect("192.168.99.100:1883")
+client.connect("localhost")
 client.loop_start()
 
 # keep looping
