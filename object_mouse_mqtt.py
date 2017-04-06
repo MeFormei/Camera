@@ -33,6 +33,7 @@ counter = 0
 direction = ""
 
 MOUSE_THRESHOLD = 20
+MQTT_HOST = "192.168.99.100"
 
 # if a video path was not supplied, grab the reference
 # to the webcam
@@ -45,7 +46,7 @@ else:
 
 # Connects to mqtt broker
 client = mqtt.Client()
-client.connect("localhost")
+client.connect(MQTT_HOST)
 client.loop_start()
 
 # keep looping
@@ -61,6 +62,8 @@ while True:
 	# resize the frame, blur it, and convert it to the HSV
 	# color space
 	frame = imutils.resize(frame, width=600)
+	# mirror image horizontally
+	frame = cv2.flip(frame, 1)
 	# blurred = cv2.GaussianBlur(frame, (11, 11), 0)
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -107,7 +110,7 @@ while True:
 
 		# check to see if enough points have been accumulated in
 		# the buffer
-		if counter >= 10 and i == 1 and pts[-10] is not None:
+		if counter >= 10 and i == 1 and len(pts) >= 10 and pts[-10] is not None:
 			# compute the difference between the x and y
 			# coordinates and re-initialize the direction
 			# text variables
@@ -123,7 +126,7 @@ while True:
 
 			if mouse_dX > MOUSE_THRESHOLD or mouse_dY > MOUSE_THRESHOLD:
 				last_mouse_pos = (center_x, center_y)
-				# pyautogui.moveTo(center_x, center_y, duration=0)
+				pyautogui.moveTo(center_x, center_y, duration=0)
 				client.publish('position', 'x: {}, y: {}'.format(center_x, center_y))
 
 			# ensure there is significant movement in the
