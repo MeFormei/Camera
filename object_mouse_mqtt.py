@@ -10,6 +10,7 @@ import imutils
 import cv2
 import pyautogui
 import paho.mqtt.client as mqtt
+import json
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
@@ -127,7 +128,8 @@ while True:
 			if mouse_dX > MOUSE_THRESHOLD or mouse_dY > MOUSE_THRESHOLD:
 				last_mouse_pos = (center_x, center_y)
 				# pyautogui.moveTo(center_x, center_y, duration=0)
-				client.publish('position', 'x: {}, y: {}'.format(center_x, center_y))
+				position_json = json.dumps({'x': center_x, 'y': center_y})
+				client.publish('position', position_json)
 
 			# ensure there is significant movement in the
 			# x-direction

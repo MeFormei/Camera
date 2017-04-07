@@ -2,25 +2,38 @@
 <html>
   <head>
     <title>Move Mouse Camera</title>
+    <style>
+      #pointer {
+        background: #F00;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+      }
+    </style>
   </head>
 
   <body>
-    <p id="content"></p>
+    <div id="pointer"></div>
   </body>
 
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <script>
     var mqttHost = '192.168.99.100'
     var mqttPort = 9001
-    
+
     var client  = mqtt.connect('mqtt://' + mqttHost + ':' + mqttPort)
 
     client.subscribe('position')
 
-    client.on('message', function (topic, message) {
+    client.on('message', function (topic, messageStr) {
       // message is Buffer
-      console.log(message.toString())
-      document.getElementById('content').innerHTML = message.toString()
+      var position = JSON.parse(messageStr.toString())
+      console.log(position)
+
+      var pointer = document.getElementById('pointer')
+      pointer.style.position = "absolute"
+      pointer.style.left = position.x + 'px'
+      pointer.style.top = position.y + 'px'
       // client.end()
     })
   </script>
