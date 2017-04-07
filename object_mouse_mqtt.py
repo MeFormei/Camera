@@ -11,6 +11,7 @@ import cv2
 import pyautogui
 import paho.mqtt.client as mqtt
 import json
+from PySide import QtGui # to get display resolution
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
@@ -32,6 +33,16 @@ last_mouse_pos = (0, 0)
 counter = 0
 (dX, dY) = (0, 0)
 direction = ""
+
+# get display resolution
+app = QtGui.QApplication([])
+screen_resolution = app.desktop().screenGeometry()
+screen_width, screen_height = screen_resolution.width(), screen_resolution.height()
+
+frame_width, frame_height = 600, 330
+
+width_factor = np.abs(np.round(screen_width / frame_width))
+height_factor = np.abs(np.round(screen_height / frame_height))
 
 MOUSE_THRESHOLD = 20
 MQTT_HOST = "192.168.99.100"
@@ -62,7 +73,7 @@ while True:
 
 	# resize the frame, blur it, and convert it to the HSV
 	# color space
-	frame = imutils.resize(frame, width=600)
+	frame = imutils.resize(frame, width=frame_width, height=frame_height)
 	# mirror image horizontally
 	frame = cv2.flip(frame, 1)
 	# blurred = cv2.GaussianBlur(frame, (11, 11), 0)
@@ -127,8 +138,11 @@ while True:
 
 			if mouse_dX > MOUSE_THRESHOLD or mouse_dY > MOUSE_THRESHOLD:
 				last_mouse_pos = (center_x, center_y)
-				# pyautogui.moveTo(center_x, center_y, duration=0)
-				position_json = json.dumps({'x': center_x, 'y': center_y})
+
+				abs_center_x = center_x * width_factor
+				abs_center_y = center_y * height_factor
+				# pyautogui.moveTo(abs_center_x, abs_center_y, duration=0)
+				position_json = json.dumps({'x': abs_center_x, 'y': abs_center_y})
 				client.publish('position', position_json)
 
 			# ensure there is significant movement in the
