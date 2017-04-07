@@ -5,9 +5,10 @@
     <style>
       #pointer {
         background: #F00;
-        width: 20px;
-        height: 20px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
+        position: absolute;
       }
     </style>
   </head>
@@ -17,24 +18,50 @@
   </body>
 
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  
   <script>
-    var mqttHost = '192.168.99.100'
-    var mqttPort = 9001
 
-    var client  = mqtt.connect('mqtt://' + mqttHost + ':' + mqttPort)
+    function css( element, property ) {
+      return window.getComputedStyle( element, null ).getPropertyValue( property );
+    }
 
-    client.subscribe('position')
+    function translate( elem, x, y ) {
+      var left = parseInt( css( elem, 'left' ), 10 ),
+        top = parseInt( css( elem, 'top' ), 10 ),
+        dx = left - x,
+        dy = top - y,
+        i = 1,
+        count = 16,
+        delay = 3;
+      
+      function loop() {
+          if ( i >= count ) { return; }
+          i += 1;
+          elem.style.left = ( left - ( dx * i / count ) ).toFixed( 0 ) + 'px';
+          elem.style.top = ( top - ( dy * i / count ) ).toFixed( 0 ) + 'px';
+          setTimeout( loop, delay );
+      }
+      
+      loop();
+    }
+
+    // http://stackoverflow.com/questions/7454983/javascript-smooth-animation-from-x-y-to-x1-y1
+  </script>
+
+  <script>
+    var mqttHost = '192.168.99.100'; 
+    var mqttPort = 9001;
+    var client  = mqtt.connect('mqtt://' + mqttHost + ':' + mqttPort);
+    var pointer = document.getElementById('pointer');
+    
+    client.subscribe('position');
+   
+    pointer.style.position = "absolute";
 
     client.on('message', function (topic, messageStr) {
-      // message is Buffer
-      var position = JSON.parse(messageStr.toString())
-      console.log(position)
+      var position = JSON.parse(messageStr.toString());
+      translate(pointer, position.x, position.y);
+    });
 
-      var pointer = document.getElementById('pointer')
-      pointer.style.position = "absolute"
-      pointer.style.left = position.x + 'px'
-      pointer.style.top = position.y + 'px'
-      // client.end()
-    })
   </script>
 </html>
