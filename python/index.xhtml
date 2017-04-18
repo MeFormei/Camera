@@ -4,17 +4,43 @@
     <title>Move Mouse Camera</title>
     <style>
       #pointer {
-        background: #F00;
-        width: 8px;
-        height: 8px;
+        background: #FFF;
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
         position: absolute;
       }
+
+      .wrap {
+        width: 100%;
+        height: 100%;
+        overflow:auo;
+      }
+
+      .fleft {
+        float:left; 
+        width: 50%;
+        background:#3498db;
+        height: 80%;
+      }
+
+      .fright {
+        float: right;
+        background:#9b59b6;
+        height: 80%;
+        width: 50%;
+      }
+
+
     </style>
   </head>
 
   <body>
     <div id="pointer"></div>
+    <div class="wrap">
+      <div id="left" class="fleft"></div>
+      <div id="right" class="fright"></div>
+    </div>
   </body>
 
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
@@ -32,7 +58,7 @@
         dy = top - y,
         i = 1,
         count = 16,
-        delay = 3;
+        delay = 5;
       
       function loop() {
           if ( i >= count ) { return; }
@@ -49,10 +75,12 @@
   </script>
 
   <script>
-    var mqttHost = '192.168.99.100'; 
+    var mqttHost = 'localhost'; 
     var mqttPort = 9001;
     var client  = mqtt.connect('mqtt://' + mqttHost + ':' + mqttPort);
     var pointer = document.getElementById('pointer');
+    var left = document.getElementById('left');
+    var right = document.getElementById('right');
     
     client.subscribe('position');
    
@@ -61,6 +89,13 @@
     client.on('message', function (topic, messageStr) {
       var position = JSON.parse(messageStr.toString());
       translate(pointer, position.x, position.y);
+      if(position.x >= screen.width/2){ //right
+        right.style.background = '#8e44ad';
+        left.style.background = '#3498db';
+      } else {
+        left.style.background = '#2980b9';
+        right.style.background = '#9b59b6';
+      }
     });
 
   </script>

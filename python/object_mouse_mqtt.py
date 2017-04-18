@@ -45,7 +45,7 @@ width_factor = np.abs(screen_width / frame_width)
 height_factor = np.abs(screen_height / frame_height)
 
 MOUSE_THRESHOLD = 20
-MQTT_HOST = "192.168.99.100"
+MQTT_HOST = "localhost"
 
 # if a video path was not supplied, grab the reference
 # to the webcam
