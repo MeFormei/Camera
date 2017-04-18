@@ -18,17 +18,26 @@ int main() {
 		cout << " Cannot open camera";
 	}
 	
-	capture.set(CV_CAP_PROP_FRAME_WIDTH , 640); 
-	capture.set(CV_CAP_PROP_FRAME_HEIGHT , 480);  
+	capture.set(CV_CAP_PROP_FRAME_WIDTH , 600); 
+	capture.set(CV_CAP_PROP_FRAME_HEIGHT , 330);  
 	capture.set(CV_CAP_PROP_FOURCC, CV_FOURCC('B', 'G', 'R', '3'));
 
+  
+	Mat frame;
+	Mat hsv;
+
 	while (true) {
-		Mat frame;
-		capture.read(frame);
+        // # grab the current frame
+        capture >> frame;
+        // # mirror image horizontally
+        flip(frame,frame,1);
+        // # change from BGR to HSV
+        cvtColor(frame,hsv, CV_BGR2HSV);
+        // # show the frame to our screen and increment the frame counter
 		imshow("Camera", frame);
-		if (char(waitKey(27)) == 27){
-            break;      //If you hit ESC key loop will break.
-        }
+        // # if the 'q' key is pressed, stop the loop
+		if (char(waitKey(27)) == 27)
+            break;              
 	}
 	
 	return 0;
