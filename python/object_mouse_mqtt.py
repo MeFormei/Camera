@@ -19,6 +19,8 @@ ap.add_argument("-v", "--video",
 	help="path to the (optional) video file")
 ap.add_argument("-b", "--buffer", type=int, default=32,
 	help="max buffer size")
+ap.add_argument("-q","--mqtt", nargs='?',
+	help="enable mqtt with given ip")
 args = vars(ap.parse_args())
 
 # define the lower and upper boundaries of the "green"
@@ -39,27 +41,32 @@ app = QtGui.QApplication([])
 screen_resolution = app.desktop().screenGeometry()
 screen_width, screen_height = screen_resolution.width(), screen_resolution.height()
 
-frame_width, frame_height = 600, 330
+frame_width, frame_height = 352, 240
 
 width_factor = np.abs(screen_width / frame_width)
 height_factor = np.abs(screen_height / frame_height)
 
 MOUSE_THRESHOLD = 20
-MQTT_HOST = "localhost"
 
 # if a video path was not supplied, grab the reference
 # to the webcam
 if not args.get("video", False):
 	camera = cv2.VideoCapture(0)
+	camera.set(cv2.CAP_PROP_FRAME_WIDTH, 352)
+	camera.set(cv2.CAP_PROP_FRAME_HEIGHT,240)
+	camera.set(cv2.CAP_PROP_FPS,15)
 
 # otherwise, grab a reference to the video file
 else:
 	camera = cv2.VideoCapture(args["video"])
 
+mqtt_enabled = args.get("mqtt",False)
+
 # Connects to mqtt broker
-client = mqtt.Client()
-client.connect(MQTT_HOST)
-client.loop_start()
+if mqtt_enabled:
+	client = mqtt.Client()
+	client.connect(MQTT_HOST)
+	client.loop_start()
 
 # keep looping
 while True:
@@ -102,16 +109,14 @@ while True:
 		M = cv2.moments(c)
 		center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
-
 		# only proceed if the radius meets a minimum size
 		if radius > 10:
 			# draw the circle and centroid on the frame,
 			# then update the list of tracked points
-			cv2.circle(frame, (int(x), int(y)), int(radius),
-				(0, 255, 255), 2)
+			# cv2.circle(frame, (int(x), int(y)), int(radius),
+			# 	(0, 255, 255), 2)
 			cv2.circle(frame, center, 5, (0, 0, 255), 1)
 			pts.appendleft(center)
-
 
 	# loop over the set of tracked points
 	for i in np.arange(1, len(pts)):
@@ -143,7 +148,9 @@ while True:
 				abs_center_y = np.round(center_y * height_factor)
 				# pyautogui.moveTo(abs_center_x, abs_center_y, duration=0)
 				position_json = json.dumps({'x': abs_center_x, 'y': abs_center_y})
-				client.publish('position', position_json)
+				
+				if mqtt_enabled:
+					client.publish('position', position_json)
 
 			# ensure there is significant movement in the
 			# x-direction
@@ -163,11 +170,10 @@ while True:
 			else:
 				direction = dirX if dirX != "" else dirY
 
-
 		# otherwise, compute the thickness of the line and
 		# draw the connecting lines
-		thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
-		cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
+		# thickness = int(np.sqrt(args["buffer"] / float(i + 1)) * 2.5)
+		# cv2.line(frame, pts[i - 1], pts[i], (0, 0, 255), thickness)
 
 	# show the movement deltas and the direction of movement on
 	# the frame

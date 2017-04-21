@@ -9,7 +9,12 @@
 #include <iostream>
 using namespace cv;
 using namespace std;
- 
+
+// # define the lower and upper boundaries of the "green"
+// # ball in the HSV color space
+int low_h = 29, low_s = 86, low_v = 6;
+int high_h = 64, high_s = 255, high_v = 255;
+
 int main() {
 	
 	VideoCapture capture(0);   //0 is the id of video device.0 if you have only one camera.
@@ -25,6 +30,7 @@ int main() {
   
 	Mat frame;
 	Mat hsv;
+	Mat mask;
 
 	while (true) {
         // # grab the current frame
@@ -33,6 +39,13 @@ int main() {
         flip(frame,frame,1);
         // # change from BGR to HSV
         cvtColor(frame,hsv, CV_BGR2HSV);
+        
+        // # construct a mask for the color "green", then perform
+		// # a series of dilations and erosions to remove any small
+		// # blobs left in the mask
+        inRange(hsv, Scalar(low_h, low_s, low_v), Scalar(high_h, high_s, high_v), mask);
+        erode(mask, mask, NULL);
+
         // # show the frame to our screen and increment the frame counter
 		imshow("Camera", frame);
         // # if the 'q' key is pressed, stop the loop
