@@ -4,6 +4,7 @@
 
 # import the necessary packages
 from collections import deque
+from threading import Timer 
 import numpy as np
 import argparse
 import imutils
@@ -25,8 +26,24 @@ args = vars(ap.parse_args())
 
 # define the lower and upper boundaries of the "green"
 # ball in the HSV color space
-greenLower = (29, 86, 6)
-greenUpper = (64, 255, 255)
+GREEN_LOWER = (29, 86, 6)
+GREEN_UPPER = (64, 255, 255)
+
+# get display resolution
+app = QtGui.QApplication([])
+SCREEN_RESOLUTION = app.desktop().screenGeometry()
+SCREEN_WIDTH, SCREEN_HEIGHT = SCREEN_RESOLUTION.width(), SCREEN_RESOLUTION.height()
+FRAME_WIDTH, FRAME_HEIGHT = 352, 240
+MOUSE_THRESHOLD = 20
+WIDTH_FACTOR = np.abs(SCREEN_WIDTH / FRAME_WIDTH)
+HEIGHT_FACTOR = np.abs(SCREEN_HEIGHT / FRAME_HEIGHT)
+
+# Limits
+EAST_LIMIT = 0.9 * FRAME_WIDTH
+WEST_LIMIT = 0.1 * FRAME_WIDTH
+NORTH_LIMIT = 0.1 * FRAME_HEIGHT
+SOUTH_LIMIT = 0.7 * FRAME_HEIGHT
+TIMER_LIMIT = 1.0
 
 # initialize the list of tracked points, the frame counter,
 # and the coordinate deltas
@@ -36,24 +53,12 @@ counter = 0
 (dX, dY) = (0, 0)
 direction = ""
 
-# get display resolution
-app = QtGui.QApplication([])
-screen_resolution = app.desktop().screenGeometry()
-screen_width, screen_height = screen_resolution.width(), screen_resolution.height()
-
-frame_width, frame_height = 352, 240
-
-width_factor = np.abs(screen_width / frame_width)
-height_factor = np.abs(screen_height / frame_height)
-
-MOUSE_THRESHOLD = 20
-
 # if a video path was not supplied, grab the reference
 # to the webcam
 if not args.get("video", False):
 	camera = cv2.VideoCapture(0)
-	camera.set(cv2.CAP_PROP_FRAME_WIDTH, 352)
-	camera.set(cv2.CAP_PROP_FRAME_HEIGHT,240)
+	camera.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
+	camera.set(cv2.CAP_PROP_FRAME_HEIGHT,FRAME_HEIGHT)
 	camera.set(cv2.CAP_PROP_FPS,15)
 
 # otherwise, grab a reference to the video file
@@ -61,12 +66,30 @@ else:
 	camera = cv2.VideoCapture(args["video"])
 
 mqtt_enabled = args.get("mqtt",False)
+direction_sent = False
 
 # Connects to mqtt broker
 if mqtt_enabled:
 	client = mqtt.Client()
 	client.connect(MQTT_HOST)
 	client.loop_start()
+
+def mqtt_publish(topic, payload):
+	if mqtt_enabled:
+		client.publish(topic, payload)
+	else:
+		print(topic + ' - ' + payload)
+
+def reset_direction():
+	global direction_sent
+	direction_sent = False
+
+def send_direction(direction):
+	global direction_sent
+	direction_sent = True
+	mqtt_publish('direction',direction)
+	t = Timer(TIMER_LIMIT, reset_direction)
+	t.start()
 
 # keep looping
 while True:
@@ -80,7 +103,7 @@ while True:
 
 	# resize the frame, blur it, and convert it to the HSV
 	# color space
-	frame = imutils.resize(frame, width=frame_width, height=frame_height)
+	frame = imutils.resize(frame, width=FRAME_WIDTH, height=FRAME_HEIGHT)
 	# mirror image horizontally
 	frame = cv2.flip(frame, 1)
 	# blurred = cv2.GaussianBlur(frame, (11, 11), 0)
@@ -89,7 +112,7 @@ while True:
 	# construct a mask for the color "green", then perform
 	# a series of dilations and erosions to remove any small
 	# blobs left in the mask
-	mask = cv2.inRange(hsv, greenLower, greenUpper)
+	mask = cv2.inRange(hsv, GREEN_LOWER, GREEN_UPPER)
 	mask = cv2.erode(mask, None, iterations=2)
 	mask = cv2.dilate(mask, None, iterations=2)
 
@@ -118,6 +141,21 @@ while True:
 			cv2.circle(frame, center, 5, (0, 0, 255), 1)
 			pts.appendleft(center)
 
+		center_x = center[0]
+		center_y = center[1]
+
+		if not direction_sent:
+			if center_x > EAST_LIMIT:
+				send_direction('EAST');
+			elif center_x < WEST_LIMIT:
+				send_direction('WEST')
+			elif center_y < NORTH_LIMIT:
+				send_direction('NORTH')
+			elif center_y > SOUTH_LIMIT:
+				send_direction('SOUTH')
+			else:
+				print('limit=%d x=%d y=%d' % (SOUTH_LIMIT,center_x,center_y))
+
 	# loop over the set of tracked points
 	for i in np.arange(1, len(pts)):
 		# if either of the tracked points are None, ignore
@@ -144,22 +182,21 @@ while True:
 			if mouse_dX > MOUSE_THRESHOLD or mouse_dY > MOUSE_THRESHOLD:
 				last_mouse_pos = (center_x, center_y)
 
-				abs_center_x = np.round(center_x * width_factor)
-				abs_center_y = np.round(center_y * height_factor)
+				abs_center_x = np.round(center_x * WIDTH_FACTOR)
+				abs_center_y = np.round(center_y * HEIGHT_FACTOR)
 				# pyautogui.moveTo(abs_center_x, abs_center_y, duration=0)
 				position_json = json.dumps({'x': abs_center_x, 'y': abs_center_y})
 				
-				if mqtt_enabled:
-					client.publish('position', position_json)
+				# mqtt_publish('position', position_json)
 
 			# ensure there is significant movement in the
 			# x-direction
-			if np.abs(dX) > 20:
+			if np.abs(dX) > 50:
 				dirX = "East" if np.sign(dX) == 1 else "West"
 
 			# ensure there is significant movement in the
 			# y-direction
-			if np.abs(dY) > 20:
+			if np.abs(dY) > 50:
 				dirY = "North" if np.sign(dY) == 1 else "South"
 
 			# handle when both directions are non-empty
