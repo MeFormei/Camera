@@ -4,7 +4,7 @@
 
 # import the necessary packages
 from collections import deque
-from threading import Timer 
+from threading import Timer
 import numpy as np
 import argparse
 import imutils
@@ -57,9 +57,9 @@ direction = ""
 # to the webcam
 if not args.get("video", False):
 	camera = cv2.VideoCapture(0)
-	camera.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
-	camera.set(cv2.CAP_PROP_FRAME_HEIGHT,FRAME_HEIGHT)
-	camera.set(cv2.CAP_PROP_FPS,15)
+	# camera.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
+	# camera.set(cv2.CAP_PROP_FRAME_HEIGHT,FRAME_HEIGHT)
+	# camera.set(cv2.CAP_PROP_FPS,15)
 
 # otherwise, grab a reference to the video file
 else:
@@ -71,12 +71,13 @@ direction_sent = False
 # Connects to mqtt broker
 if mqtt_enabled:
 	client = mqtt.Client()
-	client.connect(MQTT_HOST)
+	client.connect(args["mqtt"])
 	client.loop_start()
 
 def mqtt_publish(topic, payload):
 	if mqtt_enabled:
 		client.publish(topic, payload)
+		print(topic + ' - ' + payload)
 	else:
 		print(topic + ' - ' + payload)
 
@@ -153,8 +154,8 @@ while True:
 				send_direction('NORTH')
 			elif center_y > SOUTH_LIMIT:
 				send_direction('SOUTH')
-			else:
-				print('limit=%d x=%d y=%d' % (SOUTH_LIMIT,center_x,center_y))
+			# else:
+			# 	print('limit=%d x=%d y=%d' % (SOUTH_LIMIT,center_x,center_y))
 
 	# loop over the set of tracked points
 	for i in np.arange(1, len(pts)):
@@ -186,7 +187,7 @@ while True:
 				abs_center_y = np.round(center_y * HEIGHT_FACTOR)
 				# pyautogui.moveTo(abs_center_x, abs_center_y, duration=0)
 				position_json = json.dumps({'x': abs_center_x, 'y': abs_center_y})
-				
+
 				# mqtt_publish('position', position_json)
 
 			# ensure there is significant movement in the

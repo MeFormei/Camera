@@ -56,7 +56,7 @@ mqtt_enabled = args.get("mqtt",False)
 # Connects to mqtt broker
 if mqtt_enabled:
 	client = mqtt.Client()
-	client.connect(MQTT_HOST)
+	client.connect(args["mqtt"])
 	client.loop_start()
 
 camera = PiCamera()
@@ -68,7 +68,7 @@ time.sleep(0.1)
 
 # keep looping
 for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-	
+
 	frame = f.array
 
 	# if we are viewing a video and we did not grab a frame,
@@ -146,7 +146,7 @@ for f in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True
 				abs_center_y = np.round(center_y * height_factor)
 				# pyautogui.moveTo(abs_center_x, abs_center_y, duration=0)
 				position_json = json.dumps({'x': int(abs_center_x), 'y': int(abs_center_y)})
-				
+
 				if mqtt_enabled:
 					client.publish('position', position_json)
 
