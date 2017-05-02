@@ -71,13 +71,13 @@ direction_sent = False
 # Connects to mqtt broker
 if mqtt_enabled:
 	client = mqtt.Client()
-	client.connect(args["mqtt"])
+	client.connect(args["mqtt"], 1883)
 	client.loop_start()
 
 def mqtt_publish(topic, payload):
 	if mqtt_enabled:
 		client.publish(topic, payload)
-		print(topic + ' - ' + payload)
+		print('(mqtt enabled)'+topic + ' - ' + payload)
 	else:
 		print(topic + ' - ' + payload)
 
@@ -188,7 +188,7 @@ while True:
 				# pyautogui.moveTo(abs_center_x, abs_center_y, duration=0)
 				position_json = json.dumps({'x': abs_center_x, 'y': abs_center_y})
 
-				# mqtt_publish('position', position_json)
+				mqtt_publish('position', position_json)
 
 			# ensure there is significant movement in the
 			# x-direction
