@@ -157,6 +157,9 @@ while True:
 			# else:
 			# 	print('limit=%d x=%d y=%d' % (SOUTH_LIMIT,center_x,center_y))
 
+	else:
+		mqtt_publish('position', 'none')
+
 	# loop over the set of tracked points
 	for i in np.arange(1, len(pts)):
 		# if either of the tracked points are None, ignore
