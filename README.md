@@ -69,7 +69,7 @@ docker run -ti -p 1883:1883 -p 9001:9001 --name mosquitto toke/mosquitto
 In a new terminal window, navigate to the project folder and run the following command: 
 
 ```
-python object_mouse_mqtt.py --mqtt <MOSQUITTO_IP>
+python camera-tracker.py --mqtt <MOSQUITTO_IP>
 ```
 
 On *MOSQUITTO_IP* value, given as argument to **--mqtt** (or -q) you should pass the IP from the MQTT Broker host. When running Docker on Linux, it will be **localhost** (or 127.0.0.1). On other systems it will be the **IP from the created VM** (e.g 192.168.99.100). You can omit this argument if you don't want to send the calculated information to the MQTT Broker (when checking the environment or running tests, for example).   
