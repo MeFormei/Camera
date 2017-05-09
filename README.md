@@ -90,6 +90,6 @@ You can also pass the argument **--showimage** (or -i) to show the image output 
 
 * **Lucas Cristiano** - *Initial work* - [Github page](https://github.com/lucascriistiano)
 * **Roberto Dantas** - *Initial work* - [Github page](https://github.com/7robertodantas)
-* **Lucas Cristiano** - *Initial work* - [Github page](https://github.com/PCoelho07)
+* **Pedro Coelho** - *Initial work* - [Github page](https://github.com/PCoelho07)
 
 See also the list of [contributors](https://github.com/MeFormei/camera/contributors) who participated in this project.
