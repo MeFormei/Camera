@@ -1,0 +1,23 @@
+<html>
+    <head>
+        <title></title>
+    </head>
+    <body>
+
+        <script>
+            var socket = new WebSocket('ws://localhost:9000/');
+
+            socket.onopen = function(event){
+                socket.send('Hi');
+            }
+
+            socket.onclose = function() {
+
+            }
+
+            socket.onmessage = function(event){
+                console.log(event.data);
+            };
+        </script>
+    </body>
+</html>

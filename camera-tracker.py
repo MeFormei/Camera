@@ -5,11 +5,12 @@ from threading import Timer
 import cv2
 import imutils
 import numpy as np
-import paho.mqtt.client as mqtt
+from server import WebSocketServer
+
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-q", "--mqtt", nargs='?', default='', help="enable mqtt with given ip")
+ap.add_argument("-w", "--websocket", action='store_true', help="enable websocket connection")
 ap.add_argument("-i", "--showimage", action='store_true', help="enable image show")
 args = ap.parse_args()
 
@@ -38,26 +39,20 @@ camera = cv2.VideoCapture(0)
 # camera.set(cv2.CAP_PROP_FRAME_HEIGHT,FRAME_HEIGHT)
 # camera.set(cv2.CAP_PROP_FPS,15)
 
-mqtt_enabled = True if args.mqtt else False
+websocket_enabled = True if args.websocket else False
 
-# Connects to mqtt broker
-if mqtt_enabled:
-    print('MQTT enabled')
-    mqtt_host = args.mqtt
-    mqtt_port = 1883
-    print('Connecting to {} on port {}.'.format(mqtt_host, mqtt_port))
-    client = mqtt.Client()
-    client.connect(mqtt_host, mqtt_port)
-    client.loop_start()
-    print('Connected!')
+# Connects to websocket connection
+if websocket_enabled:
+    print('Web socket enabled')
+    websocket_server = WebSocketServer(port=9000)
+    websocket_server.start()
 
-
-def mqtt_publish(topic, payload):
-    if mqtt_enabled:
-        client.publish(topic, payload)
-        print('(MQTT) {} - {}'.format(topic, payload))
+def send_message(topic, data):
+    if websocket_enabled:
+        websocket_server.send_message(topic, data)
+        print('(WS) {} - {}'.format(topic, data))
     else:
-        print(topic + ' - ' + payload)
+        print(topic + ' - ' + data)
 
 
 def reset_direction():
@@ -70,7 +65,7 @@ def reset_direction():
 def send_direction(direction):
     global direction_sent
     direction_sent = True
-    mqtt_publish('direction', direction)
+    send_message('direction', direction)
     t = Timer(TIMER_LIMIT, reset_direction)
     t.start()
 
@@ -82,7 +77,7 @@ def send_position(position):
     else:
         position_payload = 'none'
 
-    mqtt_publish('position', position_payload)
+    send_message('position', position_payload)
 
 
 # keep looping
@@ -166,13 +161,15 @@ try:
             # if the 'q' key is pressed, stop the loop
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):
-                if mqtt_enabled:
-                    client.disconnect()
+                if websocket_enabled:
+                    # stop websocket
+                    pass
                 break
 
 except KeyboardInterrupt:
-    if mqtt_enabled:
-        client.disconnect()
+    if websocket_enabled:
+        # stop websocket
+        pass
 
 # cleanup the camera and close any open windows
 camera.release()
