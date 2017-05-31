@@ -15,8 +15,11 @@ ap.add_argument("-i", "--showimage", action='store_true', help="enable image sho
 args = ap.parse_args()
 
 # define the lower and upper boundaries of the "green" ball in the HSV color space
-GREEN_LOWER = (29, 86, 6)
-GREEN_UPPER = (64, 255, 255)
+SENSITIVE = 30
+GREEN_LOWER = (60 - SENSITIVE , 100, 50)
+GREEN_UPPER = (60 + SENSITIVE, 255, 255)
+# GREEN_LOWER = (29, 86, 6)
+# GREEN_UPPER = (64, 255, 255)
 
 FRAME_WIDTH, FRAME_HEIGHT = 352, 240
 POSITION_THRESHOLD = 20
@@ -93,11 +96,17 @@ try:
         # blurred = cv2.GaussianBlur(frame, (11, 11), 0)
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
+        if args.showimage:
+            cv2.imshow("hsv", hsv)
+
         # construct a mask for the color "green", then perform a series of dilations and erosions to remove any small
         # blobs left in the mask
         mask = cv2.inRange(hsv, GREEN_LOWER, GREEN_UPPER)
         mask = cv2.erode(mask, None, iterations=2)
         mask = cv2.dilate(mask, None, iterations=2)
+
+        if args.showimage:
+            cv2.imshow("Mask", mask)
 
         # find contours in the mask and initialize the current (x, y) center of the ball
         contours = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
