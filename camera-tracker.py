@@ -5,20 +5,25 @@ from threading import Timer
 import cv2
 import imutils
 import numpy as np
-import paho.mqtt.client as mqtt
+from server import WebSocketServer
+
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-q", "--mqtt", nargs='?', default='', help="enable mqtt with given ip")
+ap.add_argument("-w", "--websocket", action='store_true', help="enable websocket connection")
 ap.add_argument("-i", "--showimage", action='store_true', help="enable image show")
+ap.add_argument("-d", "--debug", action='store_true', help="enable debug printing")
 args = ap.parse_args()
 
 # define the lower and upper boundaries of the "green" ball in the HSV color space
-GREEN_LOWER = (29, 86, 6)
-GREEN_UPPER = (64, 255, 255)
+SENSITIVE = 30
+GREEN_LOWER = (60 - SENSITIVE , 100, 50)
+GREEN_UPPER = (60 + SENSITIVE, 255, 255)
+# GREEN_LOWER = (29, 86, 6)
+# GREEN_UPPER = (64, 255, 255)
 
 FRAME_WIDTH, FRAME_HEIGHT = 352, 240
-POSITION_THRESHOLD = 5
+POSITION_THRESHOLD = 20
 
 # Limits
 EAST_LIMIT = 0.9 * FRAME_WIDTH
@@ -38,26 +43,23 @@ camera = cv2.VideoCapture(0)
 # camera.set(cv2.CAP_PROP_FRAME_HEIGHT,FRAME_HEIGHT)
 # camera.set(cv2.CAP_PROP_FPS,15)
 
-mqtt_enabled = True if args.mqtt else False
+debug_enabled = True if args.debug else False
+websocket_enabled = True if args.websocket else False
+websocket_port = 9000
 
-# Connects to mqtt broker
-if mqtt_enabled:
-    print('MQTT enabled')
-    mqtt_host = args.mqtt
-    mqtt_port = 1883
-    print('Connecting to {} on port {}.'.format(mqtt_host, mqtt_port))
-    client = mqtt.Client()
-    client.connect(mqtt_host, mqtt_port)
-    client.loop_start()
-    print('Connected!')
+# Connects to websocket connection
+if websocket_enabled:
+    print('[INFO] Web socket enabled on port {}'.format(websocket_port))
+    websocket_server = WebSocketServer(port=websocket_port)
+    websocket_server.start()
 
-
-def mqtt_publish(topic, payload):
-    if mqtt_enabled:
-        client.publish(topic, payload)
-        print('(MQTT) {} - {}'.format(topic, payload))
+def send_message(topic, data):
+    if websocket_enabled:
+        websocket_server.send_message(topic, data)
+        if debug_enabled:
+            print('[DEBUG] (WS) {} - {}'.format(topic, data))
     else:
-        print(topic + ' - ' + payload)
+        print('(LOCAL) {} - {}'.format(topic, data))
 
 
 def reset_direction():
@@ -70,7 +72,7 @@ def reset_direction():
 def send_direction(direction):
     global direction_sent
     direction_sent = True
-    mqtt_publish('direction', direction)
+    send_message('direction', direction)
     t = Timer(TIMER_LIMIT, reset_direction)
     t.start()
 
@@ -82,7 +84,7 @@ def send_position(position):
     else:
         position_payload = 'none'
 
-    mqtt_publish('position', position_payload)
+    send_message('position', position_payload)
 
 
 # keep looping
@@ -98,11 +100,17 @@ try:
         # blurred = cv2.GaussianBlur(frame, (11, 11), 0)
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
+        if args.showimage:
+            cv2.imshow("hsv", hsv)
+
         # construct a mask for the color "green", then perform a series of dilations and erosions to remove any small
         # blobs left in the mask
         mask = cv2.inRange(hsv, GREEN_LOWER, GREEN_UPPER)
         mask = cv2.erode(mask, None, iterations=2)
         mask = cv2.dilate(mask, None, iterations=2)
+
+        if args.showimage:
+            cv2.imshow("Mask", mask)
 
         # find contours in the mask and initialize the current (x, y) center of the ball
         contours = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
@@ -166,13 +174,15 @@ try:
             # if the 'q' key is pressed, stop the loop
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):
-                if mqtt_enabled:
-                    client.disconnect()
+                if websocket_enabled:
+                    # stop websocket
+                    pass
                 break
 
 except KeyboardInterrupt:
-    if mqtt_enabled:
-        client.disconnect()
+    if websocket_enabled:
+        # stop websocket
+        pass
 
 # cleanup the camera and close any open windows
 camera.release()
