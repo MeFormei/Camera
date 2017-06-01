@@ -12,6 +12,7 @@ from server import WebSocketServer
 ap = argparse.ArgumentParser()
 ap.add_argument("-w", "--websocket", action='store_true', help="enable websocket connection")
 ap.add_argument("-i", "--showimage", action='store_true', help="enable image show")
+ap.add_argument("-d", "--debug", action='store_true', help="enable debug printing")
 args = ap.parse_args()
 
 # define the lower and upper boundaries of the "green" ball in the HSV color space
@@ -42,20 +43,23 @@ camera = cv2.VideoCapture(0)
 # camera.set(cv2.CAP_PROP_FRAME_HEIGHT,FRAME_HEIGHT)
 # camera.set(cv2.CAP_PROP_FPS,15)
 
+debug_enabled = True if args.debug else False
 websocket_enabled = True if args.websocket else False
+websocket_port = 9000
 
 # Connects to websocket connection
 if websocket_enabled:
-    print('Web socket enabled')
-    websocket_server = WebSocketServer(port=9000)
+    print('[INFO] Web socket enabled on port {}'.format(websocket_port))
+    websocket_server = WebSocketServer(port=websocket_port)
     websocket_server.start()
 
 def send_message(topic, data):
     if websocket_enabled:
         websocket_server.send_message(topic, data)
-        print('(WS) {} - {}'.format(topic, data))
+        if debug_enabled:
+            print('[DEBUG] (WS) {} - {}'.format(topic, data))
     else:
-        print(topic + ' - ' + data)
+        print('(LOCAL) {} - {}'.format(topic, data))
 
 
 def reset_direction():

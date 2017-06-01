@@ -10,11 +10,10 @@ class WebSocket(websocket.WebSocketHandler):
     clients = []
 
     def open(self, *args, **kwargs):
-        print("Websocket opened")
         WebSocket.clients.append(self)
 
     def on_message(self, message):
-        print("message: {}".format(message))
+        print("Received message: {}".format(message))
 
     def send_message(self, message):
         self.write_message(message)
@@ -23,7 +22,6 @@ class WebSocket(websocket.WebSocketHandler):
         return True
 
     def on_close(self):
-        print("Websocket closed")
         WebSocket.clients.remove(self)
 
 
@@ -41,7 +39,6 @@ class WebSocketServer(threading.Thread):
 
         for client in WebSocket.clients:
             client.send_message(message_json)
-            print('(ws) {} - {}'.format(topic, data))
 
     def run(self):
         self.application.listen(self.port)
